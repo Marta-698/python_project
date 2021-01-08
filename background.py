@@ -8,7 +8,6 @@ pygame.display.set_caption('Платформер')
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 FPS = 60
-ALT_PRESSED = F4_PRESSED = False
 
 
 def terminate():
@@ -35,18 +34,6 @@ def load_image(name, colorkey=None):
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            terminate()
-        if event.type == pygame.KEYDOWN:
-            if event.mod & pygame.KMOD_ALT:
-                ALT_PRESSED = True
-            if event.key == pygame.K_F4:
-                F4_PRESSED = True
-        if event.type == pygame.KEYUP:
-            if event.mod & pygame.KMOD_ALT:
-                ALT_PRESSED = False
-            if event.key == pygame.K_F4:
-                F4_PRESSED = False
-        if ALT_PRESSED and F4_PRESSED:
             terminate()
     pygame.display.flip()
     clock.tick(FPS)
