@@ -159,12 +159,13 @@ def load_level(filename):  # Чтение уровня из текстового
 def start_click(pos):  # Обработка нажатия в начальном экране
     x, y = pos
     player = None
-    if 300 <= y <= 665:
-        if 224 <= x <= 424:
+    print(x, y)
+    if 300 <= y <= 680:
+        if 300 <= x <= 550:
             player = Player(20, 337, 1)
-        elif 610 <= x <= 790:
+        elif 790 <= x <= 1060:
             player = Player(1048, 387, 2)
-        elif 1050 <= x <= 1250:
+        elif 1350 <= x <= 1595:
             player = Player(20, 344, 3)
         if player:
             player.cut_sheet('idle')
@@ -177,8 +178,8 @@ def start_screen():  # Начальный экран
     mainstarttext = MainStartText()
     choosestarttext = ChooseStartText()
     player1 = Player(-170, -100, 1)
-    player2 = Player(360, -60, 2)
-    player3 = Player(890, 300, 3)
+    player2 = Player(360, -70, 2)
+    player3 = Player(890, -105, 3)
     pygame.mixer.music.load('data/startmusic.mp3')
     pygame.mixer.music.play(-1)
     while True:
@@ -222,7 +223,7 @@ class Player(pygame.sprite.Sprite):  # Главный герой
         super().__init__(player_group, all_sprites)
         self.x, self.y, self.n, self.count = x, y, n, 0
         self.moving_left = self.moving_right = False
-        # idle, run, jump, fall, attack, take hit, die
+        # idle, run, jump, fall, attack, take hit, death
         if self.n == 1:
             self.a, self.b, self.c, self.d, self.e, self.f, self.g = 8, 8, 2, 2, 4, 4, 6
         elif self.n == 2:
@@ -231,7 +232,7 @@ class Player(pygame.sprite.Sprite):  # Главный герой
             self.a, self.b, self.c, self.d, self.e, self.f, self.g = 4, 8, 2, 2, 4, 3, 6
         self.frames = []
         self.rect = pygame.Rect(820, 350, 300, 300)
-        self.cut_sheet('idlebig')
+        self.cut_sheet('idle_big')
         self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
         self.vx, self.vy = 0, 0
@@ -239,13 +240,8 @@ class Player(pygame.sprite.Sprite):  # Главный герой
     def cut_sheet(self, status):  # обработка спрайт-листов
         columns = width = height = string = 0
         self.frames = []
-        if status == 'idlebig':
-            if self.n == 1:
-                width, height = 1200 * self.a, 1200
-            elif self.n == 2:
-                width, height = 1200 * self.a, 1200
-            elif self.n == 3:
-                width, hieght = 1200 * self.a, 1200
+        if status == 'idle_big':
+            width, height = 1200 * self.a, 1200
             string = 'Idle'
             columns = self.a
         elif status == 'idle':
@@ -269,11 +265,13 @@ class Player(pygame.sprite.Sprite):  # Главный герой
         elif status == 'jump':
             if self.n == 1:
                 width, height = 150 * self.c, 150
+            elif self.n == 2:
+                pass
         image = load_image(f'{self.n}{string}.png')
         if status == 'run_left':
             image = pygame.transform.flip(image, True, False)
         sheet = pygame.transform.scale(image, (width, height))
-        if status == 'idlebig':
+        if status == 'idle_big':
             self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height()).move(
                 self.x, self.y)
         else:
