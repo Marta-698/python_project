@@ -166,8 +166,6 @@ def start_click(pos):  # Обработка нажатия в начальном
             player = Player(1048, 387, 2)
         elif 1050 <= x <= 1250:
             player = Player(20, 344, 3)
-        elif 1500 <= x <= 1690:
-            player = Player(-30, 270, 4)
         if player:
             player.cut_sheet('idle')
             return player
@@ -178,10 +176,9 @@ def start_screen():  # Начальный экран
     screen.blit(fon, (0, 0))
     mainstarttext = MainStartText()
     choosestarttext = ChooseStartText()
-    player1 = Player(-276, -100, 1)
-    player2 = Player(400, 150, 2)
-    player3 = Player(572, -60, 3)
-    player4 = Player(996, -90, 4)
+    player1 = Player(-170, -100, 1)
+    player2 = Player(360, -60, 2)
+    player3 = Player(890, 300, 3)
     pygame.mixer.music.load('data/startmusic.mp3')
     pygame.mixer.music.play(-1)
     while True:
@@ -192,7 +189,7 @@ def start_screen():  # Начальный экран
                 player = start_click(event.pos)
                 if player:
                     pygame.mixer.music.stop()
-                    for sprite in [player1, player2, player3, player4, mainstarttext,
+                    for sprite in [player1, player2, player3, mainstarttext,
                                    choosestarttext]:
                         all_sprites.remove(sprite)
                     return player
@@ -202,7 +199,6 @@ def start_screen():  # Начальный экран
         player1.count += V / FPS
         player2.count += V / FPS
         player3.count += V / FPS
-        player4.count += V / FPS
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -225,15 +221,16 @@ class Player(pygame.sprite.Sprite):  # Главный герой
     def __init__(self, x, y, n):
         super().__init__(player_group, all_sprites)
         self.x, self.y, self.n, self.count = x, y, n, 0
+        self.moving_left = self.moving_right = False
+        # idle, run, jump, fall, attack, take hit, die
         if self.n == 1:
             self.a, self.b, self.c, self.d, self.e, self.f, self.g = 8, 8, 2, 2, 4, 4, 6
         elif self.n == 2:
-            self.a, self.b, self.c, self.d, self.e, self.f, self.g = 6, 8, 2, 2, 6, 4, 11
-        elif self.n == 3:
             self.a, self.b, self.c, self.d, self.e, self.f, self.g = 8, 8, 2, 2, 6, 4, 6
-        elif self.n == 4:
+        elif self.n == 3:
             self.a, self.b, self.c, self.d, self.e, self.f, self.g = 4, 8, 2, 2, 4, 3, 6
         self.frames = []
+        self.rect = pygame.Rect(820, 350, 300, 300)
         self.cut_sheet('idlebig')
         self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
@@ -243,12 +240,12 @@ class Player(pygame.sprite.Sprite):  # Главный герой
         columns = width = height = string = 0
         self.frames = []
         if status == 'idlebig':
-            if self.n == 1 or self.n == 3:
-                width, height = 9600, 1200
+            if self.n == 1:
+                width, height = 1200 * self.a, 1200
             elif self.n == 2:
-                width, height = 4182, 697
-            else:
-                width, height = 4800, 1200
+                width, height = 1200 * self.a, 1200
+            elif self.n == 3:
+                width, hieght = 1200 * self.a, 1200
             string = 'Idle'
             columns = self.a
         elif status == 'idle':
@@ -256,39 +253,36 @@ class Player(pygame.sprite.Sprite):  # Главный герой
             if self.n == 1:
                 width, height = 300 * self.a, 300
             elif self.n == 2:
-                width, height = 186 * self.a, 186
-            elif self.n == 3:
                 width, height = 300 * self.a, 300
             else:
                 width, height = 400 * self.a, 400
             columns = self.a
-        sheet = pygame.transform.scale(load_image(f'{self.n}{string}.png'), (width, height))
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height()).move(self.x, self.y)
+        elif status in ['run_left', 'run_right']:
+            if self.n == 1:
+                width, height = 300 * self.b, 300
+            elif self.n == 2:
+                width, height = 300 * self.b, 300
+            else:
+                width, height = 400 * self.b, 400
+            string = 'Run'
+            columns = self.b
+        elif status == 'jump':
+            if self.n == 1:
+                width, height = 150 * self.c, 150
+        image = load_image(f'{self.n}{string}.png')
+        if status == 'run_left':
+            image = pygame.transform.flip(image, True, False)
+        sheet = pygame.transform.scale(image, (width, height))
+        if status == 'idlebig':
+            self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height()).move(
+                self.x, self.y)
+        else:
+            self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height()).move(
+                self.rect.x, self.rect.y)
         for i in range(columns):
             frame_location = (self.rect.w * i, 0)
             self.frames.append(sheet.subsurface(pygame.Rect(
                 frame_location, self.rect.size)))
-
-    def check_event(self, event):  # Реакция героя на события
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_d:
-                self.vx = 5
-            elif event.key == pygame.K_a:
-                self.vx = -5
-            elif event.key == pygame.K_w:
-                self.vy = -5
-            elif event.key == pygame.K_s:
-                self.vy = 5
-        elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_d and self.vx > 0:
-                self.vx = 0
-            elif event.key == pygame.K_a and self.vx < 0:
-                self.vx = 0
-            elif event.key == pygame.K_w and self.vy < 0:
-                self.vy = 0
-            elif event.key == pygame.K_s and self.vy > 0:
-                self.vy = 0
 
     def update(self):  # Обновление персонажа
         if self.count > 1:
@@ -298,6 +292,32 @@ class Player(pygame.sprite.Sprite):  # Главный герой
         self.rect.x += self.vx
         self.rect.y += self.vy
 
+    def check_event(self, event):  # Реакция героя на события
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_a or event.key == pygame.K_LEFT:
+                self.vx = -5
+                self.moving_left = True
+                self.cut_sheet('run_left')
+            elif event.key == pygame.K_d or event.key == pygame.K_RIGHT:
+                self.vx = 5
+                self.moving_right = True
+                self.cut_sheet('run_right')
+            elif event.key == pygame.K_w or event.key == pygame.K_UP:
+                self.vy = -5
+            elif event.key == pygame.K_s or event.key == pygame.K_DOWN:
+                self.vy = 5
+        elif event.type == pygame.KEYUP:
+            if (event.key == pygame.K_a or event.key == pygame.K_LEFT) and self.vx < 0:
+                self.vx = 0
+                self.cut_sheet('idle')
+            if (event.key == pygame.K_d or event.key == pygame.K_RIGHT) and self.vx > 0:
+                self.vx = 0
+                self.cut_sheet('idle')
+            elif event.key == pygame.K_w or event.key == pygame.K_UP and self.vy < 0:
+                self.vy = 0
+            elif event.key == pygame.K_s or event.key == pygame.K_DOWN and self.vy > 0:
+                self.vy = 0
+
 
 class Camera:  # Камера
     def __init__(self):
@@ -306,7 +326,7 @@ class Camera:  # Камера
 
     def update(self, target):
         self.dx = target.rect.x + target.rect.w // 2 - WIDTH // 2
-        self.dy = target.rect.y + target.rect.h // 2 - HEIGHT // 2
+        self.dy = target.rect.y + target.rect.h // 2 - HEIGHT // 2 - 85
 
     def apply(self, sprite):
         sprite.rect.x -= self.dx // 12
