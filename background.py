@@ -163,7 +163,7 @@ def start_click(pos):  # Обработка нажатия в начальном
         if 224 <= x <= 424:
             player = Player(20, 337, 1)
         elif 610 <= x <= 790:
-            player = Player(999, 387, 2)
+            player = Player(1048, 387, 2)
         elif 1050 <= x <= 1250:
             player = Player(20, 344, 3)
         elif 1500 <= x <= 1690:
