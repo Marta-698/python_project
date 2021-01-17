@@ -15,12 +15,12 @@ FPS = 60
 V = 15
 
 
-def terminate():
+def terminate():  # Остановка программы
     pygame.quit()
     sys.exit()
 
 
-def load_image(name, place=1, colorkey=None):
+def load_image(name, place=1, colorkey=None):  # Загрузка изображения из различных папок
     if place == 1:
         fullname = os.path.join('data', name)
     elif place == 2:
@@ -41,7 +41,7 @@ def load_image(name, place=1, colorkey=None):
     return image
 
 
-tile_images = {
+tile_images = {  # Тайлы и декорации
     'S': load_image('1_stone.png', 2),
     'W': load_image('3_stones.png', 2),
     'big_bricks': load_image('big_bricks.png', 3),
@@ -141,7 +141,7 @@ tile_images = {
 tile_width = tile_height = 48
 
 
-class Tile(pygame.sprite.Sprite):
+class Tile(pygame.sprite.Sprite):  # Расстановка тайлов
     def __init__(self, tile_type, pos_x, pos_y):
         super().__init__(tiles_group, all_sprites)
         self.image = pygame.transform.scale(tile_images[tile_type], (48, 48))
@@ -149,14 +149,14 @@ class Tile(pygame.sprite.Sprite):
             tile_width * pos_x, tile_height * pos_y)
 
 
-def load_level(filename):
+def load_level(filename):  # Чтение уровня из текстового файла
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
     max_width = max(map(len, level_map))
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
 
-def start_click(pos):
+def start_click(pos):  # Обработка нажатия в начальном экране
     x, y = pos
     player = None
     if 300 <= y <= 665:
@@ -173,7 +173,7 @@ def start_click(pos):
             return player
 
 
-def start_screen():
+def start_screen():  # Начальный экран
     fon = pygame.transform.scale(load_image('field.jpg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
     mainstarttext = MainStartText()
@@ -207,21 +207,21 @@ def start_screen():
         clock.tick(FPS)
 
 
-class MainStartText(pygame.sprite.Sprite):
+class MainStartText(pygame.sprite.Sprite):  # Главный текст начального экрана
     def __init__(self):
         super().__init__(all_sprites)
         self.image = load_image('mainstarttext.png')
         self.rect = self.image.get_rect().move(WIDTH // 2 - 450, 0)
 
 
-class ChooseStartText(pygame.sprite.Sprite):
+class ChooseStartText(pygame.sprite.Sprite):  # Текст начального экрана
     def __init__(self):
         super().__init__(all_sprites)
         self.image = load_image('startchoose.png')
         self.rect = self.image.get_rect().move(WIDTH // 2 - 300, 155)
 
 
-class Player(pygame.sprite.Sprite):
+class Player(pygame.sprite.Sprite):  # Главный герой
     def __init__(self, x, y, n):
         super().__init__(player_group, all_sprites)
         self.x, self.y, self.n, self.count = x, y, n, 0
@@ -239,7 +239,7 @@ class Player(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
         self.vx, self.vy = 0, 0
 
-    def cut_sheet(self, status):
+    def cut_sheet(self, status):  # обработка спрайт-листов
         columns = width = height = string = 0
         self.frames = []
         if status == 'idlebig':
@@ -270,7 +270,7 @@ class Player(pygame.sprite.Sprite):
             self.frames.append(sheet.subsurface(pygame.Rect(
                 frame_location, self.rect.size)))
 
-    def check_event(self, event):
+    def check_event(self, event):  # Реакция героя на события
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_d:
                 self.vx = 5
@@ -285,12 +285,12 @@ class Player(pygame.sprite.Sprite):
                 self.vx = 0
             elif event.key == pygame.K_a and self.vx < 0:
                 self.vx = 0
-            elif event.key == pygame.K_w:
+            elif event.key == pygame.K_w and self.vy < 0:
                 self.vy = 0
-            elif event.key == pygame.K_s:
+            elif event.key == pygame.K_s and self.vy > 0:
                 self.vy = 0
 
-    def update(self):
+    def update(self):  # Обновление персонажа
         if self.count > 1:
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)
             self.image = self.frames[self.cur_frame]
@@ -299,7 +299,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.y += self.vy
 
 
-class Camera:
+class Camera:  # Камера
     def __init__(self):
         self.dx = 0
         self.dy = 0
@@ -313,7 +313,7 @@ class Camera:
         sprite.rect.y -= self.dy // 12
 
 
-def generate_level(level):
+def generate_level(level):  # Генерация уровня
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] != '.':
