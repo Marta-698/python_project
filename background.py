@@ -1,6 +1,7 @@
 import pygame
 import os
 import sys
+import random
 
 pygame.init()
 size = WIDTH, HEIGHT = 1920, 1000
@@ -10,9 +11,12 @@ clock = pygame.time.Clock()
 all_sprites = pygame.sprite.Group()
 start_sprites = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+playerRect_group = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 FPS = 60
 V = 15
+JUMP_POWER = 10
+GRAVITY = 0.35
 
 
 def terminate():  # Остановка программы
@@ -138,15 +142,16 @@ tile_images = {  # Тайлы и декорации
     'up_small_green_decor': load_image('up_small_green_decor.png', 3),
     'up_stump': load_image('up_stump.png', 3)
 }
-tile_width = tile_height = 48
+tile_width = tile_height = 40
 
 
 class Tile(pygame.sprite.Sprite):  # Расстановка тайлов
     def __init__(self, tile_type, pos_x, pos_y):
-        super().__init__(tiles_group, all_sprites)
-        self.image = pygame.transform.scale(tile_images[tile_type], (48, 48))
-        self.rect = self.image.get_rect().move(
-            tile_width * pos_x, tile_height * pos_y)
+        super().__init__(all_sprites)
+        if tile_type == 'w':
+            tiles_group.add(self)
+        self.image = pygame.transform.scale(tile_images[tile_type], (40, 40))
+        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
 
 
 def load_level(filename):  # Чтение уровня из текстового файла
@@ -159,7 +164,6 @@ def load_level(filename):  # Чтение уровня из текстового
 def start_click(pos):  # Обработка нажатия в начальном экране
     x, y = pos
     player = None
-    print(x, y)
     if 300 <= y <= 680:
         if 300 <= x <= 550:
             player = Player(20, 337, 1)
@@ -177,9 +181,9 @@ def start_screen():  # Начальный экран
     screen.blit(fon, (0, 0))
     mainstarttext = MainStartText()
     choosestarttext = ChooseStartText()
-    player1 = Player(-170, -100, 1)
-    player2 = Player(360, -70, 2)
-    player3 = Player(890, -105, 3)
+    player1 = Player(280, 305, 1)
+    player2 = Player(810, 330, 2)
+    player3 = Player(1340, 295, 3)
     pygame.mixer.music.load('data/startmusic.mp3')
     pygame.mixer.music.play(-1)
     while True:
@@ -221,66 +225,64 @@ class ChooseStartText(pygame.sprite.Sprite):  # Текст начального 
 class Player(pygame.sprite.Sprite):  # Главный герой
     def __init__(self, x, y, n):
         super().__init__(player_group, all_sprites)
-        self.x, self.y, self.n, self.count = x, y, n, 0
-        self.moving_left = self.moving_right = False
+        self.x, self.y, self.n, self.count, self.cur_frame, self.vx, self.vy = x, y, n, 0, 0, 0, 0
+        self.frames = []
+        self.way, self.on_ground = True, False
+        self.collideRect = CollideRect(n)
         # idle, run, jump, fall, attack, take hit, death
         if self.n == 1:
             self.a, self.b, self.c, self.d, self.e, self.f, self.g = 8, 8, 2, 2, 4, 4, 6
         elif self.n == 2:
             self.a, self.b, self.c, self.d, self.e, self.f, self.g = 8, 8, 2, 2, 6, 4, 6
         elif self.n == 3:
-            self.a, self.b, self.c, self.d, self.e, self.f, self.g = 4, 8, 2, 2, 4, 3, 6
-        self.frames = []
-        self.rect = pygame.Rect(820, 350, 300, 300)
+            self.a, self.b, self.c, self.d, self.e, self.f, self.g = 4, 8, 2, 2, 4, 3, 7
         self.cut_sheet('idle_big')
-        self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
-        self.vx, self.vy = 0, 0
 
     def cut_sheet(self, status):  # обработка спрайт-листов
-        columns = width = height = string = 0
         self.frames = []
-        if status == 'idle_big':
-            width, height = 1200 * self.a, 1200
+        if status == 'idle' or status == 'idle_big':
             string = 'Idle'
-            columns = self.a
-        elif status == 'idle':
-            string = 'Idle'
-            if self.n == 1:
-                width, height = 300 * self.a, 300
-            elif self.n == 2:
-                width, height = 300 * self.a, 300
-            else:
-                width, height = 400 * self.a, 400
             columns = self.a
         elif status in ['run_left', 'run_right']:
-            if self.n == 1:
-                width, height = 300 * self.b, 300
-            elif self.n == 2:
-                width, height = 300 * self.b, 300
-            else:
-                width, height = 400 * self.b, 400
             string = 'Run'
             columns = self.b
         elif status == 'jump':
-            if self.n == 1:
-                width, height = 150 * self.c, 150
-            elif self.n == 2:
-                pass
-        image = load_image(f'{self.n}{string}.png')
-        if status == 'run_left':
+            string = 'Jump'
+            columns = self.c
+        elif status == 'fall':
+            string = 'Fall'
+            columns = self.d
+        elif status == 'attack':
+            columns = self.e
+            string = random.choice(['Attack1', 'Attack2'])
+        elif status == 'take_hit':
+            columns = self.f
+            string = 'Take Hit'
+        else:
+            columns = self.g
+            string = 'Death'
+        if status == 'idle_big':
+            width, height = 1200 * columns, 1200
+        else:
+            width, height = 300 * columns, 300
+        image = load_image(f'{self.n}{string}.png', colorkey=-1)
+        if status == 'run_left' or status == 'attack' and not self.way or \
+                status == 'idle' and not self.way:
             image = pygame.transform.flip(image, True, False)
         sheet = pygame.transform.scale(image, (width, height))
         if status == 'idle_big':
-            self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height()).move(
-                self.x, self.y)
+            self.rect = pygame.Rect(self.x, self.y, 240, 160)
         else:
-            self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height()).move(
-                self.rect.x, self.rect.y)
-        for i in range(columns):
-            frame_location = (self.rect.w * i, 0)
-            self.frames.append(sheet.subsurface(pygame.Rect(
-                frame_location, self.rect.size)))
+            self.rect = pygame.Rect(self.rect.x, self.rect.y, 60, 84)
+        if status == 'idle_big':
+            for i in range(columns):
+                frame_location = (450 + 1200 * i, 420)
+                self.frames.append(sheet.subsurface(pygame.Rect(frame_location, (260, 350))))
+        else:
+            for i in range(columns):
+                frame_location = (7 + 300 * i, 65)
+                self.frames.append(sheet.subsurface(pygame.Rect(frame_location, (285, 130))))
 
     def update(self):  # Обновление персонажа
         if self.count > 1:
@@ -289,21 +291,37 @@ class Player(pygame.sprite.Sprite):  # Главный герой
             self.count = 0
         self.rect.x += self.vx
         self.rect.y += self.vy
+        if self.n == 1:
+            self.collideRect.rect.x = self.rect.x + 115
+            self.collideRect.rect.y = self.rect.y + 42
+        elif self.n == 2:
+            self.collideRect.rect.x = self.rect.x + 120
+            self.collideRect.rect.y = self.rect.y + 40
+        else:
+            self.collideRect.rect.x = self.rect.x + 125
+            self.collideRect.rect.y = self.rect.y + 42
 
     def check_event(self, event):  # Реакция героя на события
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                self.cut_sheet('attack')
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a or event.key == pygame.K_LEFT:
-                self.vx = -5
-                self.moving_left = True
+                self.vx = -10
                 self.cut_sheet('run_left')
+                self.way = False
             elif event.key == pygame.K_d or event.key == pygame.K_RIGHT:
-                self.vx = 5
-                self.moving_right = True
+                self.vx = 10
                 self.cut_sheet('run_right')
+                self.way = True
             elif event.key == pygame.K_w or event.key == pygame.K_UP:
-                self.vy = -5
+                self.vy = -10
             elif event.key == pygame.K_s or event.key == pygame.K_DOWN:
-                self.vy = 5
+                self.vy = 10
+            elif event.key == pygame.K_SPACE:
+                pass
+            elif event.mod & pygame.KMOD_CTRL:
+                print('attack')
         elif event.type == pygame.KEYUP:
             if (event.key == pygame.K_a or event.key == pygame.K_LEFT) and self.vx < 0:
                 self.vx = 0
@@ -311,10 +329,23 @@ class Player(pygame.sprite.Sprite):  # Главный герой
             if (event.key == pygame.K_d or event.key == pygame.K_RIGHT) and self.vx > 0:
                 self.vx = 0
                 self.cut_sheet('idle')
-            elif event.key == pygame.K_w or event.key == pygame.K_UP and self.vy < 0:
+            if event.key == pygame.K_w or event.key == pygame.K_UP and self.vy < 0:
                 self.vy = 0
-            elif event.key == pygame.K_s or event.key == pygame.K_DOWN and self.vy > 0:
+            if event.key == pygame.K_s or event.key == pygame.K_DOWN and self.vy > 0:
                 self.vy = 0
+
+
+class CollideRect(pygame.sprite.Sprite):
+    def __init__(self, n):
+        super().__init__(playerRect_group, all_sprites)
+        if n == 1:
+            w, h = 56, 84
+        elif n == 2:
+            w, h = 45, 79
+        else:
+            w, h = 45, 86
+        self.rect = pygame.Rect(0, 0, w, h)
+        self.image = load_image('nothing.png')
 
 
 class Camera:  # Камера
@@ -323,12 +354,13 @@ class Camera:  # Камера
         self.dy = 0
 
     def update(self, target):
-        self.dx = target.rect.x + target.rect.w // 2 - WIDTH // 2
-        self.dy = target.rect.y + target.rect.h // 2 - HEIGHT // 2 - 85
+        rect = target.image.get_rect().move(target.rect.x, target.rect.y)
+        self.dx = rect.x + rect.w // 2 - WIDTH // 2
+        self.dy = rect.y + rect.h // 2 - HEIGHT // 2
 
     def apply(self, sprite):
-        sprite.rect.x -= self.dx // 12
-        sprite.rect.y -= self.dy // 12
+        sprite.rect.x -= self.dx // 8
+        sprite.rect.y -= self.dy // 8
 
 
 def generate_level(level):  # Генерация уровня
