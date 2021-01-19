@@ -335,7 +335,7 @@ class Player(pygame.sprite.Sprite):  # Главный герой
                 self.vy = 0
 
 
-class CollideRect(pygame.sprite.Sprite):
+class CollideRect(pygame.sprite.Sprite):  # Прямоугольник столкновения игрока
     def __init__(self, n):
         super().__init__(playerRect_group, all_sprites)
         if n == 1:
