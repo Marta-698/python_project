@@ -212,7 +212,7 @@ class MainStartText(pygame.sprite.Sprite):  # Главный текст нача
     def __init__(self):
         super().__init__(all_sprites)
         self.image = load_image('mainstarttext.png')
-        self.rect = self.image.get_rect().move(WIDTH // 2 - 450, 0)
+        self.rect = self.image.get_rect().move(WIDTH // 2 - 450, 50)
 
 
 class ChooseStartText(pygame.sprite.Sprite):  # Текст начального экрана
