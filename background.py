@@ -12,11 +12,10 @@ all_sprites = pygame.sprite.Group()
 start_sprites = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 playerRect_group = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
+tile_group = pygame.sprite.Group()
+platform_group = pygame.sprite.Group()
 FPS = 90
 V = 15
-JUMP_POWER = 10
-GRAVITY = 0.35
 
 
 def terminate():  # Остановка программы
@@ -148,7 +147,7 @@ tile_width = tile_height = 40
 class Tile(pygame.sprite.Sprite):  # Расстановка тайлов
     def __init__(self, tile_type, pos_x, pos_y):
         if tile_type != 'I':
-            super().__init__(tiles_group, all_sprites)
+            super().__init__(tile_group, all_sprites)
         else:
             super().__init__(all_sprites)
         self.image = pygame.transform.scale(tile_images[tile_type], (40, 40))
@@ -167,11 +166,11 @@ def start_click(pos):  # Обработка нажатия в начальном
     player = None
     if 300 <= y <= 680:
         if 300 <= x <= 550:
-            player = Player(20, 337, 1)
+            player = Player(20, 250, 1)
         elif 790 <= x <= 1060:
             player = Player(1048, 387, 2)
         elif 1350 <= x <= 1595:
-            player = Player(20, 344, 3)
+            player = Player(20, 250, 3)
         if player:
             player.cut_sheet('idle')
             return player
@@ -226,25 +225,23 @@ class ChooseStartText(pygame.sprite.Sprite):  # Текст начального 
 class Player(pygame.sprite.Sprite):  # Главный герой
     def __init__(self, x, y, n):
         super().__init__(player_group, all_sprites)
-        self.x, self.y, self.n, self.count, self.cur_frame, self.vx, self.vy = x, y, n, 0, 0, 0, 0
-        self.frames = []
-        self.way, self.on_ground, self.gravity = True, False, 5
+        self.x, self.y, self.n, self.count, self.cur_frame, self.vx, self.vy = x, y, n, 0, 0, 0, 5
+        self.frames, self.way, self.on_ground = [], True, False
         self.right_pressed = False
         self.left_pressed = False
         self.up_pressed = False
         self.down_pressed = False
         self.collideRect = CollideRect(n)
-        self.ground_count = 0
         # idle, run, jump, fall, attack, take hit, death
         if self.n == 1:
             self.a, self.b, self.c, self.d, self.e, self.f, self.g, self.c_x, \
-            self.c_y = 8, 8, 2, 2, 4, 4, 6, 115, 42
+            self.c_y, self.coeff = 8, 8, 2, 2, 4, 4, 6, 115, 42, 0
         elif self.n == 2:
             self.a, self.b, self.c, self.d, self.e, self.f, self.g, self.c_x, \
-            self.c_y = 8, 8, 2, 2, 6, 4, 6, 120, 40
+            self.c_y, self.coeff = 8, 8, 2, 2, 6, 4, 6, 120, 39, 5
         elif self.n == 3:
             self.a, self.b, self.c, self.d, self.e, self.f, self.g, self.c_x, \
-            self.c_y = 4, 8, 2, 2, 4, 3, 7, 125, 42
+            self.c_y, self.coeff = 4, 8, 2, 2, 4, 3, 7, 125, 42, -2
         self.cut_sheet('idle_big')
         self.image = self.frames[self.cur_frame]
 
@@ -253,7 +250,7 @@ class Player(pygame.sprite.Sprite):  # Главный герой
         if status == 'idle' or status == 'idle_big':
             string = 'Idle'
             columns = self.a
-        elif status in ['run_left', 'run_right']:
+        elif status == 'run':
             string = 'Run'
             columns = self.b
         elif status == 'jump':
@@ -276,8 +273,7 @@ class Player(pygame.sprite.Sprite):  # Главный герой
         else:
             width, height = 300 * columns, 300
         image = load_image(f'{self.n}{string}.png', colorkey=-1)
-        if status == 'run_left' or status == 'attack' and not self.way or \
-                status == 'idle' and not self.way:
+        if not self.way:
             image = pygame.transform.flip(image, True, False)
         sheet = pygame.transform.scale(image, (width, height))
         if status == 'idle_big':
@@ -298,43 +294,48 @@ class Player(pygame.sprite.Sprite):  # Главный герой
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)
             self.image = self.frames[self.cur_frame]
             self.count = 0
+        if self.rect.h > 150:
+            return
+        self.vx = 0
         self.on_ground = False
-        self.up, self.down, self.left, self.right = False, False, False, False
-        self.vx = self.vy = 0
         if self.left_pressed:
-            self.vx = -7
+            self.vx = -5
         if self.right_pressed:
-            self.vx = 7
-        if self.up_pressed:
-            self.vy = -7
-        if self.down_pressed:
-            self.vy = 7
-        for tile in tiles_group:
+            self.vx = 5
+        for tile in tile_group:
             rect1 = self.collideRect.rect
             rect2 = tile.rect
-            if 0 <= (rect1.bottom + self.vy + self.gravity) - rect2.top <= 10 and (
+            if 0 <= (rect1.bottom + self.vy) - rect2.top <= 10 and (
                     rect2.x < rect1.x < rect2.right or rect2.x < rect1.right < rect2.right):
                 self.vy = 0
-                self.rect.bottom = rect2.top - self.c_y + 4
                 self.on_ground = True
+                self.rect.bottom = rect2.top - self.c_y + self.coeff
             if 0 <= rect2.right - (rect1.left + self.vx) <= 7 and (
-                    rect2.y <= rect1.y <= rect2.bottom or rect2.y <= rect1.bottom <= rect2.bottom or
-                    rect1.y <= rect2.y <= rect1.bottom or rect1.y <= rect2.bottom <= rect1.bottom):
-                self.vx = 0
-                self.rect.x = rect2.right - self.c_x
+                    rect2.y < rect1.y < rect2.bottom or rect2.y < rect1.bottom < rect2.bottom or
+                    rect1.y < rect2.y < rect1.bottom or rect1.y < rect2.bottom < rect1.bottom):
+                self.vx = max(self.vx, 0)
             if 0 <= (rect1.right + self.vx) - rect2.left <= 7 and (
-                    rect2.y <= rect1.y <= rect2.bottom or rect2.y <= rect1.bottom <= rect2.bottom or
-                    rect1.y <= rect2.y <= rect1.bottom or rect1.y <= rect2.bottom <= rect1.bottom):
-                self.vx = 0
-                self.rect.right = rect2.x - self.c_x + 9
+                    rect2.y < rect1.y < rect2.bottom or rect2.y < rect1.bottom < rect2.bottom or
+                    rect1.y < rect2.y < rect1.bottom or rect1.y < rect2.bottom < rect1.bottom):
+                self.vx = min(self.vx, 0)
+                print((rect1.right + self.vx) - rect2.left)
         if not self.on_ground:
-            self.vy += self.gravity
-            if abs(self.gravity + 0.5) <= 7:
-                self.gravity = (self.gravity + 0.5)
+            if abs(self.vy + 0.2) <= 9.1:
+                self.vy += 0.2
+        if self.vx != 0:
+            self.way = True if self.vx > 0 else False
+            self.cut_sheet('run')
+        else:
+            self.cut_sheet('idle')
+        if self.vy < 0:
+            self.cut_sheet('jump')
+        elif self.vy > 0:
+            self.cut_sheet('fall')
         self.rect.x += self.vx
         self.rect.y += self.vy
         self.collideRect.rect.x = self.rect.x + self.c_x
         self.collideRect.rect.y = self.rect.y + self.c_y
+        # print(self.on_ground, self.vy)
 
     def check_event(self, event):  # Реакция героя на события
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -343,35 +344,18 @@ class Player(pygame.sprite.Sprite):  # Главный герой
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a or event.key == pygame.K_LEFT:
                 self.left_pressed = True
-                self.cut_sheet('run_left')
-                self.way = False
-            if (event.key == pygame.K_d or event.key == pygame.K_RIGHT):
+            if event.key == pygame.K_d or event.key == pygame.K_RIGHT:
                 self.right_pressed = True
-                self.cut_sheet('run_right')
-                self.way = True
-            if (event.key == pygame.K_w or event.key == pygame.K_UP):
-                self.up_pressed = True
-            if (event.key == pygame.K_s or event.key == pygame.K_DOWN):
-                self.down_pressed = True
             if event.key == pygame.K_SPACE and self.on_ground:
                 self.on_ground = False
-                self.gravity = -7
-                self.rect.y -= 1
-                self.collideRect.rect.y = self.rect.y - self.c_y
-                print(self.gravity)
+                self.vy = -9
             if event.mod & pygame.KMOD_CTRL:
                 print('attack')
         if event.type == pygame.KEYUP:
-            if (event.key == pygame.K_a or event.key == pygame.K_LEFT):
+            if event.key == pygame.K_a or event.key == pygame.K_LEFT:
                 self.left_pressed = False
-                self.cut_sheet('idle')
-            if (event.key == pygame.K_d or event.key == pygame.K_RIGHT):
+            if event.key == pygame.K_d or event.key == pygame.K_RIGHT:
                 self.right_pressed = False
-                self.cut_sheet('idle')
-            if (event.key == pygame.K_w or event.key == pygame.K_UP):
-                self.up_pressed = False
-            if (event.key == pygame.K_s or event.key == pygame.K_DOWN):
-                self.down_pressed = False
 
 
 class CollideRect(pygame.sprite.Sprite):  # Прямоугольник столкновения игрока
@@ -426,6 +410,5 @@ while True:
     for sprite in all_sprites:
         camera.apply(sprite)
     player.count += V / FPS
-    player.ground_count += V / FPS
     pygame.display.flip()
-    clock.tick(66)
+    clock.tick(90)
