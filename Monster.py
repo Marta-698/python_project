@@ -15,59 +15,54 @@ image = [pygame.image.load('opossum-1.png'),
             pygame.image.load('opossum-6.png')]
 bg = pygame.image.load('front.jpg')
 
-x = 0
-y = 427
 
-whith = 60
-height = 71
-
-speed = 5
-
-left = False
-right = True
-animcount = 0
-maxLengthLeft = 60 #отвечает за пройденное расстояние опоссумом
-clock = pygame.time.Clock()
-animcount_2 = 0
-RIGHT_MOVE = 1
-LEFT_MOVE = 2
-MOVE_DISTANCE = 2
-state = RIGHT_MOVE
+class Monster(pygame.sprite.Sprite):
+    def __init__(self, width, height):
+        self.x, self.y, self.speed, self.animcount, self.RIGHT_MOVE, self.LEFT_MOVE, self.MOVE_DISTANCE = 0, 427, 5, 0, 1, 2, 2
+        self.whith, self.height = width, height
+        self.left, self.right = False, True
+        self.maxLengthLeft = 60 #отвечает за пройденное расстояние опоссумом
+        self.state = self.RIGHT_MOVE
 
 
-def drawWindow():
-    global animcount
-    win.blit(bg, (0, 0))
+    def drawWindow(self):
+        win.blit(bg, (0, 0))
 
-    if animcount + 1 >= 30:
-        animcount = 0
+        if self.animcount + 1 >= 30:
+            self.animcount = 0
 
 
-    if state == RIGHT_MOVE:
-        win.blit(walkright[animcount // 5], (x, y))
-        animcount += 1
-    else:
-        win.blit(image[animcount // 5], (x, y))
-        animcount += 1
-    pygame.display.update()
+        if self.state == self.RIGHT_MOVE:
+            win.blit(walkright[self.animcount // 5], (self.x, self.y))
+            self.animcount += 1
+        else:
+            win.blit(image[self.animcount // 5], (self.x, self.y))
+            self.animcount += 1
+        pygame.display.update()
 
-run = True
-while run:
-    clock.tick(30)
+    run = True
+    while run:
+        clock.tick(30)
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
 
-    if state == RIGHT_MOVE:
-        x += MOVE_DISTANCE
-        if x - MOVE_DISTANCE > maxLengthLeft:
-            if x > maxLengthLeft - maxLengthLeft:
-                state = LEFT_MOVE
-    else:
-        x -= MOVE_DISTANCE
-        if x < 0:
-            state = RIGHT_MOVE
+        def event(self):
+            if self.state == self.RIGHT_MOVE:
+                self.x += self.MOVE_DISTANCE
+                if self.x - self.MOVE_DISTANCE > self.maxLengthLeft:
+                    if self.x > self.maxLengthLeft - self.maxLengthLeft:
+                        self.state = self.LEFT_MOVE
+            else:
+                self.x -= self.MOVE_DISTANCE
+                if self.x < 0:
+                    self.state = self.RIGHT_MOVE
 
-    drawWindow()
-pygame.quit()
+if __name__ == '__main__':
+    pygame.init()
+    pygame.display.set_caption('')
+    width, height = 600, 95
+    clock = pygame.time.Clock()
+    pygame.quit()
+
