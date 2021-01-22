@@ -11,9 +11,13 @@ clock = pygame.time.Clock()
 all_sprites = pygame.sprite.Group()
 start_sprites = pygame.sprite.Group()
 tile_group = pygame.sprite.Group()
+decor_group = pygame.sprite.Group()
 platform_group = pygame.sprite.Group()
 playerRect_group = pygame.sprite.Group()
 NPC_group = pygame.sprite.Group()
+player_group = pygame.sprite.Group()
+finish_group = pygame.sprite.Group()
+finish_screen_group = pygame.sprite.Group()
 FPS = 90
 V = 15
 
@@ -55,39 +59,23 @@ def load_image(name, place=1, colorkey=None):  # Загрузка изображ
 tile_images = {  # Тайлы и декорации
     'S': load_image('1_stone.png', 2),
     'W': load_image('3_stones.png', 2),
-    '$': load_image('4_stones.png', 2),
-    'big_bricks': load_image('big_bricks.png', 3),
-    'big_crate': load_image('big_crate.png', 3),
     'big_grass': load_image('big_grass.png', 3, colorkey=1),
-    'big_spiral': load_image('big_spiral.png', 3),
-    'B': load_image('black.png', 2),
-    'block_big': load_image('block_big.png', 3),
-    'R': load_image('bricks.png', 2),
+    'R': load_image('black.png', 2),
+    'B': load_image('bricks.png', 2),
     'b': load_image('brown.png', 2),
     'C': load_image('crate.png', 2),
     'k': load_image('dirt.png', 2),
     'm': load_image('down_dirt.png', 2),
     'x': load_image('down_plate.png', 2),
     'grass_1': load_image('grass_1.png', 3),
-    'grass_2': load_image('grass_2.png', 3),
     'grass_3': load_image('grass_3.png', 3),
-    'grass_4': load_image('grass_4.png', 3),
-    'grass_5': load_image('grass_5.png', 3),
     'g': load_image('green.png', 2),
     '1': load_image('ground_1.png', 2),
     '2': load_image('ground_2.png', 2),
     '3': load_image('ground_3.png', 2),
     '4': load_image('ground_4.png', 2),
-    '5': load_image('ground_5.png', 2),
-    '6': load_image('ground_6.png', 2),
-    '7': load_image('ground_7.png', 2),
     '8': load_image('ground_8.png', 2),
-    '9': load_image('ground_9.png', 2),
-    '0': load_image('ground_10.png', 2),
     '-': load_image('ground_11.png', 2),
-    'house': load_image('house.png', 3),
-    'left_branch': load_image('left_branch.png', 3),
-    'left_corner': load_image('left_corner.png', 3),
     'j': load_image('left_dirt.png', 2),
     'n': load_image('left_down_dirt.png', 2),
     'z': load_image('left_down_plate.png', 2),
@@ -96,8 +84,6 @@ tile_images = {  # Тайлы и декорации
     '}': load_image('left_small_platform.png', 3, colorkey=5),
     'r': load_image('left_up_green.png', 2, colorkey=3),
     'q': load_image('left_up_plate.png', 2),
-    'right_branch': load_image('right_branch.png', 3),
-    'right_corner': load_image('right_corner.png', 3),
     'l': load_image('right_dirt.png', 2),
     ',': load_image('right_down_dirt.png', 2),
     'c': load_image('right_down_plate.png', 2),
@@ -112,7 +98,6 @@ tile_images = {  # Тайлы и декорации
     'spike_skull': load_image('spike_skull.png', 3),
     'spikes': load_image('spikes.png', 3),
     's': load_image('stones.png', 2),
-    'T': load_image('torch.png', 2),
     'tree': load_image('tree.png', 3),
     't': load_image('up_green.png', 2),
     'w': load_image('up_plate.png', 2),
@@ -120,24 +105,41 @@ tile_images = {  # Тайлы и декорации
     'i': load_image('small_spiral.png', 2),
     'tree1': load_image('tree1.png', 3, colorkey=1),
     'tree2': load_image('tree2.png', 3, colorkey=1),
-    'tree3': load_image('tree3.png', 3, colorkey=1)
+    'tree3': load_image('tree3.png', 3, colorkey=1),
+    'stump': load_image('stump.png', 2, colorkey=1),
+    'sign': load_image('sign.png', 3, colorkey=3),
+    'shrooms': load_image('shrooms.png', 3, colorkey=2)
 }
 tile_width = tile_height = 40
 
 
 class Tile(pygame.sprite.Sprite):  # Расстановка тайлов
-    def __init__(self, tile_type, pos_x, pos_y, width=40, height=40, type=False):
+    def __init__(self, tile_type, pos_x, pos_y, width=40, height=40):
         if tile_type in ['r', 't', 'y', '{', '}']:
             super().__init__(platform_group, all_sprites)
             if tile_type in ('{', '}'):
                 width, height = 80, 40
             self.image = pygame.transform.scale(tile_images[tile_type], (width, height))
-        elif type:
+        elif tile_type in ['R', 'B']:
             super().__init__(all_sprites)
         else:
             super().__init__(tile_group, all_sprites)
         self.image = pygame.transform.scale(tile_images[tile_type], (width, height))
         self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+
+
+class Decor(pygame.sprite.Sprite):  # Расстановка декораций
+    def __init__(self, name, x, y, width, height):
+        super().__init__(decor_group, all_sprites)
+        self.image = pygame.transform.scale(tile_images[name], (width, height))
+        self.rect = self.image.get_rect().move(x * 10, y * 10)
+
+
+class Stump(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(finish_group, all_sprites)
+        self.image = pygame.transform.scale(tile_images['stump'], (40, 40))
+        self.rect = self.image.get_rect().move(x * 10, y * 10)
 
 
 def load_level(filename):  # Чтение уровня из текстового файла
@@ -167,6 +169,9 @@ def start_screen():  # Начальный экран
     screen.blit(fon, (0, 0))
     MainStartText()
     ChooseStartText()
+    Specifications1()
+    Specifications2()
+    Specifications3()
     player1 = Player(280, 305, 1, area=False)
     player2 = Player(810, 330, 2, area=False)
     player3 = Player(1340, 295, 3, area=False)
@@ -191,6 +196,44 @@ def start_screen():  # Начальный экран
         clock.tick(FPS)
 
 
+def finish_screen(status):
+    global game_finished
+    game_finished = True
+    pygame.mixer.music.stop()
+    pygame.mixer.music.load('data/finishmusic.mp3')
+    pygame.mixer.music.play(-1)
+    fon = pygame.transform.scale(load_image('img.png'), (WIDTH, HEIGHT))
+    screen.blit(fon, (0, 0))
+    if status:
+        Congrats()
+    else:
+        GameOver()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.mixer.music.stop()
+                terminate()
+        screen.blit(fon, (0, 0))
+        finish_screen_group.update()
+        finish_screen_group.draw(screen)
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+class Congrats(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(finish_screen_group)
+        self.image = load_image('congrats.png')
+        self.rect = self.image.get_rect().move(WIDTH // 2 - 450, 0)
+
+
+class GameOver(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(finish_screen_group)
+        self.image = load_image('gameover.png')
+        self.rect = self.image.get_rect().move(WIDTH // 2 - 450, 0)
+
+
 class MainStartText(pygame.sprite.Sprite):  # Главный текст начального экрана
     def __init__(self):
         super().__init__(start_sprites)
@@ -205,14 +248,31 @@ class ChooseStartText(pygame.sprite.Sprite):  # Текст начального 
         self.rect = self.image.get_rect().move(WIDTH // 2 - 300, 160)
 
 
-def finish_screen():
-    fon = pygame.transform.scale(load_image('field.jpg'), (WIDTH, HEIGHT))
+class Specifications1(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(start_sprites)
+        self.image = load_image('image1.png')
+        self.rect = self.image.get_rect().move(120, 670)
+
+
+class Specifications2(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(start_sprites)
+        self.image = load_image('image2.png')
+        self.rect = self.image.get_rect().move(660, 670)
+
+
+class Specifications3(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(start_sprites)
+        self.image = load_image('image3.png')
+        self.rect = self.image.get_rect().move(1200, 670)
 
 
 class Player(pygame.sprite.Sprite):  # Главный герой
     def __init__(self, x, y, n, area=True):
         if area:
-            super().__init__(all_sprites)
+            super().__init__(player_group)
         else:
             super().__init__(start_sprites)
         self.x, self.y, self.n, self.count, self.cur_frame, self.vx, self.vy = x, y, n, 0, 0, 0, 5
@@ -239,6 +299,7 @@ class Player(pygame.sprite.Sprite):  # Главный герой
             self.c_x, self.c_y, self.k, self.hp, self.damage, self.speed = 125, 42, -2, 40, 15, 7
             self.frames_count = {'idle_big': 4, 'idle': 4, 'run': 8, 'jump': 2, 'fall': 2,
                                  'attack': 4, 'take_hit': 3, 'death': 7}
+        self.total_hp = self.hp
         self.cut_sheet('idle_big')
         self.image = self.frames[self.cur_frame]
 
@@ -274,7 +335,7 @@ class Player(pygame.sprite.Sprite):  # Главный герой
 
     def update(self):  # Обновление персонажа
         if self.is_dead:
-            return
+            finish_screen(False)
         if self.count > 1 and self.attacking:
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)
             self.image = self.frames[self.cur_frame]
@@ -336,13 +397,8 @@ class Player(pygame.sprite.Sprite):  # Главный герой
         if not self.on_ground and abs(float('%.1f' % (self.vy + 0.2))) <= 8:
             self.vy = float('%.1f' % (self.vy + 0.2))
         if self.vx and not self.vy:
-            if self.vx > 0 and not self.way and not self.attacking and not self.taking_hit:
-                self.way = True
-                self.cut_sheet('run')
-            elif self.vx < 0 and self.way and not self.attacking and not self.taking_hit:
-                self.way = False
-                self.cut_sheet('run')
-            if self.action != 'run' and not self.attacking and not self.taking_hit:
+            if self.vx and not self.vy and self.action != 'run' and not self. \
+                    attacking and not self.taking_hit:
                 self.cut_sheet('run')
         elif not self.vy:
             if self.action != 'idle' and not self.attacking and not self.taking_hit:
@@ -351,6 +407,12 @@ class Player(pygame.sprite.Sprite):  # Главный герой
             self.cut_sheet('jump')
         elif self.vy > 0 and self.action != 'fall' and not self.attacking and not self.taking_hit:
             self.cut_sheet('fall')
+        if self.vx > 0 and not self.way and not self.attacking and not self.taking_hit:
+            self.way = True
+            self.cut_sheet(self.action)
+        elif self.vx < 0 and self.way and not self.attacking and not self.taking_hit:
+            self.way = False
+            self.cut_sheet(self.action)
         if pygame.sprite.spritecollideany(self.collide, NPC_group) and self. \
                 action != 'take_hit' and self.can_take_hit:
             self.hp -= 10
@@ -364,6 +426,8 @@ class Player(pygame.sprite.Sprite):  # Главный герой
                 if pygame.sprite.collide_rect(self.attack, npc):
                     npc.hp -= self.damage
                     self.can_attack = False
+        if pygame.sprite.spritecollideany(self.collide, finish_group):
+            finish_screen(True)
         if self.hp <= 0:
             self.dying = True
             self.cut_sheet('death')
@@ -434,8 +498,7 @@ class AttackRect(pygame.sprite.Sprite):  # Прямоугольник столк
 
 class Opossum(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        super().__init__(NPC_group, all_sprites)
-        self.way = True
+        super().__init__(NPC_group)
         self.cur_frame = 0
         self.total_frames = 0
         self.vx = 5
@@ -446,12 +509,18 @@ class Opossum(pygame.sprite.Sprite):
         self.image = load_image(self.frames[self.cur_frame])
         self.rect = self.image.get_rect().move(x, y)
         self.way = False
+        self.alive = True
 
     def update(self):
         if self.count > 1:
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)
             self.total_frames += 1
-            self.image = pygame.transform.scale(load_image(self.frames[self.cur_frame]), (72, 56))
+            if self.alive:
+                self.image = pygame.transform.scale(load_image(self.frames[self.cur_frame]),
+                                                    (72, 56))
+            else:
+                self.image = pygame.transform.scale(load_image(death_frames[self.cur_frame]),
+                                                    (80, 82))
             if not self.way:
                 self.image = pygame.transform.flip(self.image, True, False)
             self.count = 0
@@ -459,15 +528,48 @@ class Opossum(pygame.sprite.Sprite):
                 self.way = not self.way
                 self.vx = -self.vx
                 self.total_frames = 0
-        self.rect.x += self.vx
         if self.hp <= 0:
+            self.alive = False
+            self.vx = 0
+        if not self.alive and self.cur_frame == 5:
             all_sprites.remove(self)
             NPC_group.remove(self)
+        self.rect.x += self.vx
 
 
 class Eagle(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__(NPC_group, all_sprites)
+    def __init__(self, x, y):
+        super().__init__(NPC_group)
+        self.cur_frame = self.total_frames = 0
+        self.vy = 2
+        self.hp = 20
+        self.frames = ['eagle-1.png', 'eagle-2.png', 'eagle-3.png', 'eagle-4.png']
+        self.count = 0
+        self.image = load_image(self.frames[self.cur_frame])
+        self.rect = self.image.get_rect().move(x, y)
+        self.alive = True
+
+    def update(self):
+        if self.count > 1:
+            self.total_frames += 1
+            if self.alive:
+                self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+                self.image = pygame.transform.scale(load_image(self.frames[self.cur_frame]),
+                                                    (80, 82))
+            else:
+                self.cur_frame = (self.cur_frame + 1) % len(death_frames)
+                self.image = pygame.transform.scale(load_image(death_frames[self.cur_frame]),
+                                                    (80, 82))
+            self.count = 0
+        if self.total_frames == 8:
+            self.total_frames = 0
+            self.vy = -self.vy
+        if self.hp <= 0:
+            self.alive = False
+        if not self.alive and self.cur_frame == 5:
+            all_sprites.remove(self)
+            NPC_group.remove(self)
+        self.rect.y += self.vy
 
 
 class Camera:  # Камера
@@ -494,38 +596,76 @@ def generate_level(level):  # Генерация уровня
 
 
 player = start_screen()
+death_frames = ['death-1.png', 'death-2.png', 'death-3.png', 'death-4.png', 'death-5.png',
+                'death-6.png']
 opossum = Opossum(1600, 784)
+opossum1 = Opossum(6300, 1064)
+opossum2 = Opossum(4235, 984)
+eagle = Eagle(2360, 400)
+eagle1 = Eagle(8000, 590)
 level = generate_level(load_level('map.txt'))
-Tile('small_grass', 44, 20, width=48, height=40, type=True)
-Tile('small_grass', 47, 16, width=48, height=40, type=True)
-Tile('big_grass', 60, 20, width=48, height=40, type=True)
-Tile('big_grass', 57, 14, width=48, height=40, type=True)
-Tile('spike_skull', 200, 19, width=56, height=40, type=True)
-Tile('spikes', 230, 24, width=60, height=40, type=True)
-Tile('tree1', 26, 16.7, width=136, height=174, type=True)
-Tile('tree2', 90, 16.2, width=96, height=192, type=True)
-Tile('tree3', 214, 15.2, width=96, height=192, type=True)
+Decor('small_grass', 190, 81, 48, 30)
+Decor('big_grass', 187, 64, 48, 39)
+Decor('big_grass', 235, 80, 48, 39)
+Decor('small_grass', 230, 57, 48, 30)
+Decor('small_grass', 310, 65, 48, 30)
+Decor('spike_skull', 792, 76, 53, 36)
+Decor('spikes', 950, 96, 60, 40)
+Decor('tree1', 110, 67, 136, 174)
+Decor('tree2', 360, 69, 96, 192)
+Decor('tree3', 840, 61, 96, 192)
+Decor('grass_3', 772, 80, 40, 40)
+Decor('grass_1', 776, 80, 40, 40)
+Decor('grass_1', 780, 80, 40, 40)
+Decor('grass_1', 784, 80, 40, 40)
+Decor('grass_1', 788, 80, 40, 40)
+Decor('sign', 780, 76, 36, 40)
+Decor('shrooms', 815, 75.5, 48, 45)
+Stump(938, 96)
+Stump(942, 96)
+Stump(946, 96)
+Stump(950, 96)
+Stump(954, 96)
+Stump(958, 96)
+Stump(962, 96)
+Stump(966, 96)
+Stump(970, 96)
+Stump(974, 96)
+Stump(978, 96)
+Stump(982, 96)
+Stump(986, 96)
+Stump(990, 96)
+Stump(994, 96)
+Stump(998, 96)
 fon = pygame.transform.scale(load_image('back.png'), (WIDTH, HEIGHT))
 camera = Camera()
 dt = 0
-timer1 = 2
-i = 0
-last = player.rect.x
+pygame.mixer.music.load('data/musictheme.mp3')
+pygame.mixer.music.play(-1)
+game_finished = False
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             terminate()
         player.check_event(event)
     screen.blit(fon, (0, 0))
-    all_sprites.update()
-    all_sprites.draw(screen)
-    camera.update(player)
-    for sprite in all_sprites:
-        camera.apply(sprite)
-    player.count += V / FPS
-    opossum.count += V / FPS
-    player.timer -= dt
-    if player.timer <= 0:
-        player.can_take_hit = True
-    pygame.display.flip()
-    dt = clock.tick(FPS) / 1000
+    if not game_finished:
+        all_sprites.update()
+        all_sprites.draw(screen)
+        player_group.update()
+        player_group.draw(screen)
+        camera.update(player)
+        NPC_group.update()
+        NPC_group.draw(screen)
+        for sprites in (all_sprites, player_group, NPC_group):
+            for sprite in sprites:
+                camera.apply(sprite)
+        for thing in [player, opossum, opossum1, eagle, eagle1, opossum2]:
+            thing.count += V / FPS
+        player.timer -= dt
+        if player.timer <= 0:
+            player.can_take_hit = True
+        pygame.draw.rect(screen, (0, 0, 0), (10, 10, player.total_hp * 5, 10), 1)
+        pygame.draw.rect(screen, (255, 0, 0), (11, 11, max(0, player.hp * 5 - 2), 8))
+        pygame.display.flip()
+        dt = clock.tick(FPS) / 1000
